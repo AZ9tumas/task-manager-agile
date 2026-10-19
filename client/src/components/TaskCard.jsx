@@ -1,41 +1,34 @@
-export default function TaskCard({ task, onMoveLeft, onMoveRight, onEdit, onDelete }) {
+function formatDate(date) {
+    const [year, month, day] = date.split('-');
+    return month + '-' + day + '-' + year;
+}
+
+function TaskCard({ task, onStatusChange, onEdit, onDelete }) {
     return (
-        <article className="card task-card">
-            <div className="task-card__header">
-                <h4 className="task-card__title">{task.title}</h4>
-                <span className={`badge badge--${task.priority}`}>{task.priority}</span>
+        <div className="box task">
+            <div className="task-top">
+                <h4>{task.title}</h4>
+                <span className={'priority ' + task.priority}>{task.priority}</span>
             </div>
 
-            {task.description && <p className="task-card__description">{task.description}</p>}
-            {task.due_date && <p className="task-card__due">Due {task.due_date}</p>}
+            {task.description && <p className="task-desc">{task.description}</p>}
+            {task.due_date && <p className="task-date">Due: {formatDate(task.due_date)}</p>}
 
-            <div className="task-card__actions">
-                <button
-                    className="icon-button"
-                    onClick={onMoveLeft}
-                    disabled={!onMoveLeft}
-                    aria-label="Move to previous column"
-                    title="Move left"
-                >
-                    ←
-                </button>
-                <button
-                    className="icon-button"
-                    onClick={onMoveRight}
-                    disabled={!onMoveRight}
-                    aria-label="Move to next column"
-                    title="Move right"
-                >
-                    →
-                </button>
-                <span className="spacer" />
-                <button className="link-button" onClick={onEdit}>
+            <div className="task-buttons">
+                <select value={task.status} onChange={(e) => onStatusChange(task, e.target.value)}>
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="done">Done</option>
+                </select>
+                <button className="btn-small" onClick={() => onEdit(task)}>
                     Edit
                 </button>
-                <button className="link-button link-button--danger" onClick={onDelete}>
+                <button className="btn-small red" onClick={() => onDelete(task)}>
                     Delete
                 </button>
             </div>
-        </article>
+        </div>
     );
 }
+
+export default TaskCard;

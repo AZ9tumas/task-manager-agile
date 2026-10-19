@@ -2,75 +2,66 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
-const requireAuth = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 6;
-
-function issueToken(user) {
-    return jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-}
-
-function publicUser(user) {
-    return { id: user.id, name: user.name, email: user.email };
+function makeToken(id) {
+    return jwt.sign({ id: id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 }
 
 router.post('/register', (req, res) => {
-    const { name, email, password } = req.body || {};
+    const { name, email, password } = req.body;
 
-    if (typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({ error: 'Name is required' });
-    }
-    if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
-        return res.status(400).json({ error: 'A valid email is required' });
-    }
-    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
-        return res
-            .status(400)
-            .json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
+    if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const existing = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (existing) {
-        return res.status(409).json({ error: 'An account with this email already exists' });
+        return res.status(400).json({ error: 'Email is already registered' });
     }
 
-    const passwordHash = bcrypt.hashSync(password, 10);
-    const info = db
-        .prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)')
-        .run(name.trim(), normalizedEmail, passwordHash);
+    const hashed = bcrypt.hashSync(password, 10);
+    const result = db
+        .prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)')
+        .run(name, email, hashed);
 
-    const user = { id: info.lastInsertRowid, name: name.trim(), email: normalizedEmail };
-    res.status(201).json({ token: issueToken(user), user });
+    const user = { id: result.lastInsertRowid, name: name, email: email };
+    res.status(201).json({ token: makeToken(user.id), user: user });
 });
 
 router.post('/login', (req, res) => {
-    const { email, password } = req.body || {};
+    const { email, password } = req.body;
 
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = db
-        .prepare('SELECT * FROM users WHERE email = ?')
-        .get(email.trim().toLowerCase());
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-        return res.status(401).json({ error: 'Invalid email or password' });
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+        return res.status(401).json({ error: 'Wrong email or password' });
     }
 
-    res.json({ token: issueToken(user), user: publicUser(user) });
+    res.json({
+        token: makeToken(user.id),
+        user: { id: user.id, name: user.name, email: user.email },
+    });
 });
 
-router.get('/me', requireAuth, (req, res) => {
+router.get('/me', auth, (req, res) => {
     const user = db.prepare('SELECT id, name, email FROM users WHERE id = ?').get(req.userId);
+
     if (!user) {
-        return res.status(401).json({ error: 'User no longer exists' });
+        return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ user });
+
+    res.json({ user: user });
 });
 
 module.exports = router;

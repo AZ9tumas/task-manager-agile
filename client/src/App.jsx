@@ -1,51 +1,56 @@
 import { useEffect, useState } from 'react';
-import { api, getToken, setToken } from './api.js';
-import AuthPage from './components/AuthPage.jsx';
+import { getMe } from './api.js';
+import Login from './components/Login.jsx';
 import Board from './components/Board.jsx';
 
-export default function App() {
+function App() {
     const [user, setUser] = useState(null);
-    const [checkingSession, setCheckingSession] = useState(Boolean(getToken()));
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!getToken()) return;
-        api
-            .me()
-            .then(({ user }) => setUser(user))
-            .catch(() => setToken(null))
-            .finally(() => setCheckingSession(false));
+        if (!localStorage.getItem('token')) {
+            setLoading(false);
+            return;
+        }
+
+        getMe()
+            .then((data) => setUser(data.user))
+            .catch(() => localStorage.removeItem('token'))
+            .finally(() => setLoading(false));
     }, []);
 
-    function handleAuthenticated({ token, user }) {
-        setToken(token);
-        setUser(user);
+    function handleLogin(data) {
+        localStorage.setItem('token', data.token);
+        setUser(data.user);
     }
 
-    function logout() {
-        setToken(null);
+    function handleLogout() {
+        localStorage.removeItem('token');
         setUser(null);
     }
 
-    if (checkingSession) {
-        return <p className="centered">Loading…</p>;
+    if (loading) {
+        return <p className="message">Loading...</p>;
     }
 
     if (!user) {
-        return <AuthPage onAuthenticated={handleAuthenticated} />;
+        return <Login onLogin={handleLogin} />;
     }
 
     return (
-        <div className="app">
-            <header className="app-header">
+        <div>
+            <header className="header">
                 <h1>Task Manager</h1>
-                <div className="app-header__user">
-                    <span>{user.name}</span>
-                    <button className="button button--secondary" onClick={logout}>
+                <div>
+                    <span className="username">Hi, {user.name}</span>
+                    <button className="btn btn-grey" onClick={handleLogout}>
                         Log out
                     </button>
                 </div>
             </header>
-            <Board onUnauthorized={logout} />
+            <Board />
         </div>
     );
 }
+
+export default App;

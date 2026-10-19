@@ -1,0 +1,31 @@
+digraph er {
+    rankdir=LR;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=11, shape=plaintext];
+    edge [fontname="Helvetica", fontsize=11, color="#555555"];
+
+    users [label=<
+        <table border="1" cellborder="1" cellspacing="0" cellpadding="5" color="#4a6fa5">
+            <tr><td bgcolor="#4a6fa5" colspan="2"><font color="white"><b>users</b></font></td></tr>
+            <tr><td align="left"><b>id</b> (PK)</td><td align="left">INTEGER</td></tr>
+            <tr><td align="left">name</td><td align="left">TEXT</td></tr>
+            <tr><td align="left">email</td><td align="left">TEXT, UNIQUE</td></tr>
+            <tr><td align="left">password</td><td align="left">TEXT (bcrypt hash)</td></tr>
+        </table>
+    >];
+
+    tasks [label=<
+        <table border="1" cellborder="1" cellspacing="0" cellpadding="5" color="#4a6fa5">
+            <tr><td bgcolor="#4a6fa5" colspan="2"><font color="white"><b>tasks</b></font></td></tr>
+            <tr><td align="left"><b>id</b> (PK)</td><td align="left">INTEGER</td></tr>
+            <tr><td align="left">user_id (FK)</td><td align="left">INTEGER</td></tr>
+            <tr><td align="left">title</td><td align="left">TEXT</td></tr>
+            <tr><td align="left">description</td><td align="left">TEXT</td></tr>
+            <tr><td align="left">priority</td><td align="left">low / medium / high</td></tr>
+            <tr><td align="left">due_date</td><td align="left">TEXT (YYYY-MM-DD)</td></tr>
+            <tr><td align="left">status</td><td align="left">todo / in_progress / done</td></tr>
+        </table>
+    >];
+
+    users -> tasks [label="   has   ", arrowhead=crow, arrowtail=tee, dir=both, headlabel="0..*", taillabel="1", minlen=3, labeldistance=2.2, labelangle=25];
+}

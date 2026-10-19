@@ -1,68 +1,27 @@
-// Creates the database (schema is applied in src/db.js) and adds sample data.
 require('dotenv').config();
 
 const bcrypt = require('bcryptjs');
 const db = require('../src/db');
 
-const DEMO_USER = {
-    name: 'Demo User',
-    email: 'demo@example.com',
-    password: 'password123',
-};
+const existing = db.prepare('SELECT * FROM users WHERE email = ?').get('demo@example.com');
 
-const SAMPLE_TASKS = [
-    {
-        title: 'Write requirements document',
-        description: 'Functional and non-functional requirements for the SRS.',
-        priority: 'high',
-        due_date: '2026-10-20',
-        status: 'done',
-    },
-    {
-        title: 'Draw use-case diagram',
-        description: 'Cover sign up, log in and task management.',
-        priority: 'medium',
-        due_date: '2026-10-22',
-        status: 'in_progress',
-    },
-    {
-        title: 'Set up Kanban board UI',
-        description: 'Three columns: To Do, In Progress, Done.',
-        priority: 'high',
-        due_date: '2026-10-25',
-        status: 'todo',
-    },
-    {
-        title: 'Write test cases',
-        description: '',
-        priority: 'low',
-        due_date: null,
-        status: 'todo',
-    },
-];
-
-const seed = db.transaction(() => {
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(DEMO_USER.email);
-    if (existing) {
-        return false;
-    }
-
-    const { lastInsertRowid: userId } = db
-        .prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)')
-        .run(DEMO_USER.name, DEMO_USER.email, bcrypt.hashSync(DEMO_USER.password, 10));
-
-    const insertTask = db.prepare(
-        `INSERT INTO tasks (user_id, title, description, priority, due_date, status)
-         VALUES (@userId, @title, @description, @priority, @due_date, @status)`
-    );
-    for (const task of SAMPLE_TASKS) {
-        insertTask.run({ userId, ...task });
-    }
-    return true;
-});
-
-if (seed()) {
-    console.log(`Database ready. Sample user: ${DEMO_USER.email} / ${DEMO_USER.password}`);
+if (existing) {
+    console.log('Sample data already added');
 } else {
-    console.log('Database ready. Sample data already present, nothing added.');
+    const result = db
+        .prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)')
+        .run('Demo User', 'demo@example.com', bcrypt.hashSync('password123', 10));
+
+    const userId = result.lastInsertRowid;
+
+    const addTask = db.prepare(
+        'INSERT INTO tasks (user_id, title, description, priority, due_date, status) VALUES (?, ?, ?, ?, ?, ?)'
+    );
+
+    addTask.run(userId, 'Write requirements document', 'Functional and non-functional requirements', 'high', '2026-10-20', 'done');
+    addTask.run(userId, 'Draw use-case diagram', 'Sign up, log in and task management', 'medium', '2026-10-22', 'in_progress');
+    addTask.run(userId, 'Make Kanban board page', 'To Do, In Progress and Done columns', 'high', '2026-10-25', 'todo');
+    addTask.run(userId, 'Write test cases', '', 'low', null, 'todo');
+
+    console.log('Sample data added. Login with demo@example.com / password123');
 }

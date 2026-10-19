@@ -1,0 +1,33 @@
+digraph architecture {
+    rankdir=TB;
+    nodesep=0.5;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=12, shape=box, style="rounded,filled", fillcolor="#eef3fb", color="#4a6fa5"];
+    edge [fontname="Helvetica", fontsize=10, color="#555555"];
+
+    browser [label="User\n(Web Browser)", shape=box, fillcolor="#ffffff"];
+
+    subgraph cluster_client {
+        label="Frontend (React + Vite)";
+        style="rounded,dashed"; color="#888888";
+        ui [label="Pages / Components\nLogin, Board,\nTaskCard, TaskForm"];
+        api [label="api.js\n(fetch + JWT token)"];
+    }
+
+    subgraph cluster_server {
+        label="Backend (Node.js + Express)";
+        style="rounded,dashed"; color="#888888";
+        routes [label="Routes\n/api/auth\n/api/tasks"];
+        mw [label="Auth Middleware\n(JWT check)"];
+        dbjs [label="db.js\n(better-sqlite3)"];
+    }
+
+    db [label="SQLite Database\ntasks.db\n(users, tasks)", shape=cylinder, fillcolor="#fdf3e1", color="#b8862b"];
+
+    browser -> ui;
+    ui -> api;
+    api -> routes [label="HTTP / JSON\n(REST API)"];
+    routes -> mw [dir=both];
+    routes -> dbjs;
+    dbjs -> db [label="SQL"];
+}

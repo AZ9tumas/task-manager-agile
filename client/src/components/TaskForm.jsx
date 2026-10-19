@@ -1,116 +1,94 @@
 import { useState } from 'react';
-import { PRIORITIES, STATUSES } from '../constants.js';
 
-const EMPTY_TASK = {
-    title: '',
-    description: '',
-    priority: 'medium',
-    due_date: '',
-    status: 'todo',
-};
+function toFormDate(date) {
+    const [year, month, day] = date.split('-');
+    return month + '-' + day + '-' + year;
+}
 
-export default function TaskForm({ task, onSave, onCancel }) {
-    const [form, setForm] = useState(() =>
-        task
-            ? {
-                    title: task.title,
-                    description: task.description,
-                    priority: task.priority,
-                    due_date: task.due_date ?? '',
-                    status: task.status,
-                }
-            : EMPTY_TASK
-    );
+function toSaveDate(date) {
+    const [month, day, year] = date.split('-');
+    return year + '-' + month + '-' + day;
+}
+
+function TaskForm({ task, onSave, onCancel }) {
+    const [title, setTitle] = useState(task ? task.title : '');
+    const [description, setDescription] = useState(task ? task.description : '');
+    const [priority, setPriority] = useState(task ? task.priority : 'medium');
+    const [status, setStatus] = useState(task ? task.status : 'todo');
+    const [dueDate, setDueDate] = useState(task && task.due_date ? toFormDate(task.due_date) : '');
     const [error, setError] = useState('');
-    const [saving, setSaving] = useState(false);
 
-    function updateField(event) {
-        setForm({ ...form, [event.target.name]: event.target.value });
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
+    async function handleSubmit(e) {
+        e.preventDefault();
         setError('');
-        setSaving(true);
+
+        if (dueDate && !/^\d{2}-\d{2}-\d{4}$/.test(dueDate)) {
+            setError('Due date must be in MM-DD-YYYY format');
+            return;
+        }
+
         try {
-            await onSave({ ...form, due_date: form.due_date || null });
+            await onSave({
+                title: title,
+                description: description,
+                priority: priority,
+                status: status,
+                due_date: dueDate ? toSaveDate(dueDate) : null,
+            });
         } catch (err) {
             setError(err.message);
-            setSaving(false);
         }
     }
 
     return (
-        <div className="modal-backdrop" onClick={onCancel}>
-            <form
-                className="card modal"
-                onSubmit={handleSubmit}
-                onClick={(event) => event.stopPropagation()}
-            >
-                <h2>{task ? 'Edit task' : 'New task'}</h2>
+        <div className="overlay">
+            <form className="box form" onSubmit={handleSubmit}>
+                <h2>{task ? 'Edit Task' : 'New Task'}</h2>
 
-                <label>
-                    Title
-                    <input
-                        name="title"
-                        value={form.title}
-                        onChange={updateField}
-                        maxLength={200}
-                        required
-                        autoFocus
-                    />
-                </label>
+                <label>Title</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} required />
 
-                <label>
-                    Description
-                    <textarea
-                        name="description"
-                        value={form.description}
-                        onChange={updateField}
-                        rows={3}
-                    />
-                </label>
+                <label>Description</label>
+                <textarea
+                    rows="3"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                />
 
-                <div className="form-row">
-                    <label>
-                        Priority
-                        <select name="priority" value={form.priority} onChange={updateField}>
-                            {PRIORITIES.map((p) => (
-                                <option key={p.value} value={p.value}>
-                                    {p.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                <label>Priority</label>
+                <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
 
-                    <label>
-                        Status
-                        <select name="status" value={form.status} onChange={updateField}>
-                            {STATUSES.map((s) => (
-                                <option key={s.value} value={s.value}>
-                                    {s.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                <label>Status</label>
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="done">Done</option>
+                </select>
 
-                    <label>
-                        Due date
-                        <input name="due_date" type="date" value={form.due_date} onChange={updateField} />
-                    </label>
-                </div>
+                <label>Due Date</label>
+                <input
+                    placeholder="MM-DD-YYYY"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                />
 
                 {error && <p className="error">{error}</p>}
 
-                <div className="modal__actions">
-                    <button type="button" className="button button--secondary" onClick={onCancel}>
+                <div className="form-buttons">
+                    <button type="button" className="btn btn-grey" onClick={onCancel}>
                         Cancel
                     </button>
-                    <button type="submit" className="button" disabled={saving}>
-                        {saving ? 'Saving…' : 'Save'}
+                    <button type="submit" className="btn">
+                        Save
                     </button>
                 </div>
             </form>
         </div>
     );
 }
+
+export default TaskForm;

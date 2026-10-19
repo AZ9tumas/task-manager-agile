@@ -1,50 +1,48 @@
-const TOKEN_KEY = 'token';
+async function request(url, method, body) {
+    const token = localStorage.getItem('token');
 
-export function getToken() {
-    return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token) {
-    if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
-    } else {
-        localStorage.removeItem(TOKEN_KEY);
-    }
-}
-
-async function request(path, { method = 'GET', body } = {}) {
-    const headers = { 'Content-Type': 'application/json' };
-    const token = getToken();
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    const res = await fetch(`/api${path}`, {
-        method,
-        headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
+    const res = await fetch('/api' + url, {
+        method: method || 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: token ? 'Bearer ' + token : '',
+        },
+        body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (res.status === 204) {
-        return null;
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong');
     }
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-        const error = new Error(data.error || `Request failed (${res.status})`);
-        error.status = res.status;
-        throw error;
-    }
     return data;
 }
 
-export const api = {
-    register: (details) => request('/auth/register', { method: 'POST', body: details }),
-    login: (credentials) => request('/auth/login', { method: 'POST', body: credentials }),
-    me: () => request('/auth/me'),
+export function register(name, email, password) {
+    return request('/auth/register', 'POST', { name, email, password });
+}
 
-    listTasks: () => request('/tasks'),
-    createTask: (task) => request('/tasks', { method: 'POST', body: task }),
-    updateTask: (id, changes) => request(`/tasks/${id}`, { method: 'PUT', body: changes }),
-    deleteTask: (id) => request(`/tasks/${id}`, { method: 'DELETE' }),
-};
+export function login(email, password) {
+    return request('/auth/login', 'POST', { email, password });
+}
+
+export function getMe() {
+    return request('/auth/me');
+}
+
+export function getTasks() {
+    return request('/tasks');
+}
+
+export function addTask(task) {
+    return request('/tasks', 'POST', task);
+}
+
+export function updateTask(id, task) {
+    return request('/tasks/' + id, 'PUT', task);
+}
+
+export function deleteTask(id) {
+    return request('/tasks/' + id, 'DELETE');
+}

@@ -1,8 +1,15 @@
 node_modules/
 dist/
+coverage/
 
-# Local config and database
 .env
 server/data/
+*.db
 
+/package-lock.json
+
+.claude/
+.vscode/
+.idea/
 .DS_Store
+*.log

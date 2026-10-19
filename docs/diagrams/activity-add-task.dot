@@ -1,0 +1,29 @@
+digraph activity {
+    rankdir=TB;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#eef3fb", color="#4a6fa5"];
+    edge [fontname="Helvetica", fontsize=10, color="#555555"];
+
+    start [label="", shape=circle, width=0.25, style=filled, fillcolor=black];
+    a1 [label="User clicks \"+ Add Task\""];
+    a2 [label="User fills title, description,\npriority, status, due date"];
+    a3 [label="User clicks Save"];
+    d1 [label="Due date in\nMM-DD-YYYY?", shape=diamond, fillcolor="#fdf3e1", color="#b8862b"];
+    e1 [label="Show error in form"];
+    a4 [label="Send POST /api/tasks\nwith JWT token"];
+    d2 [label="Token valid and\ntask data valid?", shape=diamond, fillcolor="#fdf3e1", color="#b8862b"];
+    e2 [label="Server returns error\n(400 / 401)"];
+    a5 [label="Save task in SQLite"];
+    a6 [label="Task appears in\nthe right column"];
+    end [label="", shape=doublecircle, width=0.2, style=filled, fillcolor=black];
+
+    start -> a1 -> a2 -> a3 -> d1;
+    d1 -> e1 [label="no"];
+    e1 -> a2;
+    d1 -> a4 [label="yes"];
+    a4 -> d2;
+    d2 -> e2 [label="no"];
+    e2 -> e1;
+    d2 -> a5 [label="yes"];
+    a5 -> a6 -> end;
+}
